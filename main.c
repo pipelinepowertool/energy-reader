@@ -6,6 +6,7 @@
 
 struct PidInfo {
     char pid[10];
+    char command[10000];
     long total_1;
     long total_2;
 };
@@ -27,7 +28,7 @@ void setPidArray(struct PidInfo *list1[], int *pidAmount);
 void updatePidArray(struct PidInfo *list[], int *pidAmount);
 
 void calculateEnergy(float *cpuEnergy);
-
+char *strtokm(char *str, const char *delim);
 //const char pkgDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/";
 const char pkgDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/";
 //const char dramDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/intel-rapl:0:2/";
@@ -39,7 +40,8 @@ const char cpuCyclesFile[] = "/proc/stat";
 //const char cpuCyclesPidFile[] = "/Users/sdenboer/code/scriptie/proc/[pid]/stat";
 const char cpuCyclesPidFile[] = "/proc/[pid]/stat";
 //const char command[] = "ps -o pid= | xargs | tr -d '\n'";
-const char command[] = "ps -efho pid -t '?' | xargs | tr -d '\n'";
+//const char command[] = "ps -efho pid -t '?' | xargs | tr -d '\n'";
+const char command[] = "ps -efh -o \"%p|ENERGY_METER_DELIMITER|\" -o command -t '?' | more | awk '{$1=$1;print}'";
 
 bool pkgSupported;
 bool dramSupported;
@@ -47,26 +49,31 @@ bool psysSupported;
 
 
 int main() {
+//    FILE *csvFpt;
+
+//    csvFpt = fopen("MyFile.csv", "w+");
+//    fprintf(csvFpt,"PID, Name, Email, Phone Number\n");
+    long cpuCycleBusy_1;
+    long cpuCycleTotal_1;
+    float cpuEnergy_1;
+
+    struct PidInfo *pidInfoList;
+
+    int pidAmount;
+
+    long cpuCycleBusy_2;
+    long cpuCycleTotal_2;
+    float cpuEnergy_2;
+    pkgSupported = checkRAPLSupport(pkgDir, "package-0");
+    dramSupported = checkRAPLSupport(dramDir, "package-0");
+    psysSupported = checkRAPLSupport(psysDir, "psys");
+
+    if (!pkgSupported && !dramSupported && !psysSupported) {
+        printf("Custom energy model not supported yet\n");
+        exit(1);
+    }
     while (1) {
-        long cpuCycleBusy_1;
-        long cpuCycleTotal_1;
-        float cpuEnergy_1;
 
-        struct PidInfo *pidInfoList;
-
-        int pidAmount;
-
-        long cpuCycleBusy_2;
-        long cpuCycleTotal_2;
-        float cpuEnergy_2;
-        pkgSupported = checkRAPLSupport(pkgDir, "package-0");
-        dramSupported = checkRAPLSupport(dramDir, "package-0");
-        psysSupported = checkRAPLSupport(psysDir, "psys");
-
-        if (!pkgSupported && !dramSupported && !psysSupported) {
-            printf("Custom energy model not supported yet\n");
-            exit(1);
-        }
 
         calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
 
@@ -88,14 +95,15 @@ int main() {
         float cpuPower = cpuEnergy_2 - cpuEnergy_1;
 
         for (int i = 0; i < pidAmount; ++i) {
-            char *pid = (char*)&pidInfoList[i].pid;
+            char *pid = (char *) &pidInfoList[i].pid;
             long *tot_2 = &pidInfoList[i].total_2;
             long *tot_1 = &pidInfoList[i].total_1;
+            char *command = &pidInfoList[i].command;
             long timed = (*tot_2 - *tot_1);
             float cpuPidUtil = total != 0 ? (float) timed / total : 0;
             float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
             if (cpuPidPower != 0.f) {
-                printf("%.2f Watt voor PID %s \n", cpuPidPower, pid);
+                printf("%.2f Watt voor PID %s met command %s\n", cpuPidPower, pid, command);
             }
         }
         printf("%.2f Watt voor CPU\n", cpuPower);
@@ -111,26 +119,69 @@ void setPidArray(struct PidInfo *list[], int *pidAmount) {
     int i, count = 0;
     fp = popen(command, "r"); //MAC
     char buffer[10000];
-    char *s = fgets(buffer, 10000, fp);
-    fclose(fp);
-    for (i = 0; s[i] != '\0'; i++) {
-        if (s[i] == ' ' && s[i + 1] != ' ')
-            count++;
+    *list = malloc(1 * sizeof(struct PidInfo));
+    int j = 0;
+    while (fgets(buffer, 10000, fp)) {
+        count++;
+        *list = realloc(*list, count * sizeof(struct PidInfo));
+        char *token = strtokm(buffer, "|ENERGY_METER_DELIMITER|");
+        bool pidToken = true;
+        while (token != NULL) {
+            if (pidToken) {
+                strncpy((*list)[count -1].pid, token, 10);
+                (*list)[count -1].total_1 = calculateCpuCyclesPid(token);
+                pidToken = false;
+            } else {
+                strncpy((*list)[count -1].command, str_replace(token, "\n", ""), 10000);
+            }
+            token = strtokm(NULL, "|ENERGY_METER_DELIMITER|");
+        }
+        j++;
+
     }
+//    char *s = fgets(buffer, 10000, fp);
+    fclose(fp);
+//    for (i = 0; s[i] != '\0'; i++) {
+//        if (s[i] == '\n' && s[i + 1] != '\n')
+//            count++;
+//    }
 
     *pidAmount = count;
 
-    *list = malloc((count) * sizeof(struct PidInfo));
+//    *list = malloc((count) * sizeof(struct PidInfo));
+//
+//    int j = 0;
+//    char *token = strtok(s, " ");
+//    while (token != NULL) {
+//        strncpy((*list)[j].pid, token, 10);
+//        (*list)[j].total_1 = calculateCpuCyclesPid(token);
+//        token = strtok(NULL, " ");
+//        j++;
+//    }
 
-    int j = 0;
-    char *token = strtok(s, " ");
-    while (token != NULL) {
-        strncpy((*list)[j].pid, token, 10);
-        (*list)[j].total_1 = calculateCpuCyclesPid(token);
-        token = strtok(NULL, " ");
-        j++;
+}
+
+char *strtokm(char *str, const char *delim)
+{
+    static char *tok;
+    static char *next;
+    char *m;
+
+    if (delim == NULL) return NULL;
+
+    tok = (str) ? str : next;
+    if (tok == NULL) return NULL;
+
+    m = strstr(tok, delim);
+
+    if (m) {
+        next = m + strlen(delim);
+        *m = '\0';
+    } else {
+        next = NULL;
     }
 
+    return tok;
 }
 
 void updatePidArray(struct PidInfo *list[], int *pidAmount) {
@@ -208,7 +259,7 @@ bool checkRAPLSupport(const char *directory, const char *fileName) {
 
 char *readFile(const char *file) {
     const int bufferLength = 300;
-    char* line = malloc(bufferLength * sizeof(char));
+    char *line = malloc(bufferLength * sizeof(char));
 //    char line[bufferLength];
     FILE *filePointer;
 
