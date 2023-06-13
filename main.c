@@ -27,18 +27,18 @@ void updatePidArray(struct PidInfo *list[], int *pidAmount);
 
 void calculateEnergy(long *cpuEnergy);
 
-const char pkgDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/";
-//const char pkgDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/";
-const char dramDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/intel-rapl:0:2/";
-//const char dramDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:2/";
-const char psysDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:1/";
-//const char psysDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:1/";
-const char cpuCyclesFile[] = "/Users/sdenboer/code/scriptie/proc/stat";
-//const char cpuCyclesFile[] = "/proc/stat";
-const char cpuCyclesPidFile[] = "/Users/sdenboer/code/scriptie/proc/[pid]/stat";
-//const char cpuCyclesPidFile[] = "/proc/[pid]/stat";
-const char command[] = "ps -o pid= | xargs | tr -d '\n'";
-//const char command[] = "ps -efho pid -t ? | xargs | tr -d '\n'";
+//const char pkgDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/";
+const char pkgDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/";
+//const char dramDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/intel-rapl:0:2/";
+const char dramDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:2/";
+//const char psysDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:1/";
+const char psysDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:1/";
+//const char cpuCyclesFile[] = "/Users/sdenboer/code/scriptie/proc/stat";
+const char cpuCyclesFile[] = "/proc/stat";
+//const char cpuCyclesPidFile[] = "/Users/sdenboer/code/scriptie/proc/[pid]/stat";
+const char cpuCyclesPidFile[] = "/proc/[pid]/stat";
+//const char command[] = "ps -o pid= | xargs | tr -d '\n'";
+const char command[] = "ps -efho pid -t ? | xargs | tr -d '\n'";
 
 bool pkgSupported;
 bool dramSupported;
