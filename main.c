@@ -6,7 +6,8 @@
 
 struct PidInfo {
     char pid[10];
-    long total;
+    long total_1;
+    long total_2;
 };
 
 char *concat(const char *string, const char *string1);
@@ -21,11 +22,11 @@ long calculateCpuCyclesPid(char *pid);
 
 char *str_replace(const char *orig, char *rep, char *with);
 
-void setPidArray(struct PidInfo *list1[], struct PidInfo *list2[], int *pidAmount);
+void setPidArray(struct PidInfo *list1[], int *pidAmount);
 
 void updatePidArray(struct PidInfo *list[], int *pidAmount);
 
-void calculateEnergy(long *cpuEnergy);
+void calculateEnergy(float *cpuEnergy);
 
 //const char pkgDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/";
 const char pkgDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/";
@@ -38,7 +39,7 @@ const char cpuCyclesFile[] = "/proc/stat";
 //const char cpuCyclesPidFile[] = "/Users/sdenboer/code/scriptie/proc/[pid]/stat";
 const char cpuCyclesPidFile[] = "/proc/[pid]/stat";
 //const char command[] = "ps -o pid= | xargs | tr -d '\n'";
-const char command[] = "ps -efho pid -t ? | xargs | tr -d '\n'";
+const char command[] = "ps -efho pid -t '?' | xargs | tr -d '\n'";
 
 bool pkgSupported;
 bool dramSupported;
@@ -46,64 +47,71 @@ bool psysSupported;
 
 
 int main() {
-    long cpuCycleBusy_1;
-    long cpuCycleTotal_1;
-    long cpuEnergy_1;
+    while (1) {
+        long cpuCycleBusy_1;
+        long cpuCycleTotal_1;
+        float cpuEnergy_1;
 
-    struct PidInfo *pidInfoList_1;
-    struct PidInfo *pidInfoList_2;
-    int pidAmount;
+        struct PidInfo *pidInfoList;
 
-    long cpuCycleBusy_2;
-    long cpuCycleTotal_2;
-    long cpuEnergy_2;
-    pkgSupported = checkRAPLSupport(pkgDir, "package-0");
-    dramSupported = checkRAPLSupport(dramDir, "package-0");
-    psysSupported = checkRAPLSupport(psysDir, "psys");
+        int pidAmount;
 
-    if (!pkgSupported && !dramSupported && !psysSupported) {
-        printf("Custom energy model not supported yet\n");
-        exit(1);
+        long cpuCycleBusy_2;
+        long cpuCycleTotal_2;
+        float cpuEnergy_2;
+        pkgSupported = checkRAPLSupport(pkgDir, "package-0");
+        dramSupported = checkRAPLSupport(dramDir, "package-0");
+        psysSupported = checkRAPLSupport(psysDir, "psys");
+
+        if (!pkgSupported && !dramSupported && !psysSupported) {
+            printf("Custom energy model not supported yet\n");
+            exit(1);
+        }
+
+        calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
+
+        setPidArray(&pidInfoList, &pidAmount);
+
+        calculateEnergy(&cpuEnergy_1);
+
+        sleep(1);
+
+        calculateCpuCycles(&cpuCycleBusy_2, &cpuCycleTotal_2);
+        updatePidArray(&pidInfoList, &pidAmount);
+
+
+        calculateEnergy(&cpuEnergy_2);
+
+        float total = (float) cpuCycleTotal_2 - (float) cpuCycleTotal_1;
+        float busy = (float) cpuCycleBusy_2 - (float) cpuCycleBusy_1;
+        float cpuUtil = total != 0 ? busy / total : 0;
+        float cpuPower = cpuEnergy_2 - cpuEnergy_1;
+
+        for (int i = 0; i < pidAmount; ++i) {
+            char *pid = (char*)&pidInfoList[i].pid;
+            long *tot_2 = &pidInfoList[i].total_2;
+            long *tot_1 = &pidInfoList[i].total_1;
+            long timed = (*tot_2 - *tot_1);
+            float cpuPidUtil = total != 0 ? (float) timed / total : 0;
+            float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
+            if (cpuPidPower != 0.f) {
+                printf("%.2f Watt voor PID %s \n", cpuPidPower, pid);
+            }
+        }
+        printf("%.2f Watt voor CPU\n", cpuPower);
+        fflush(stdout);
+
+
     }
 
-    calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
-
-    setPidArray(&pidInfoList_1, &pidInfoList_2, &pidAmount);
-
-    calculateEnergy(&cpuEnergy_1);
-
-    sleep(1);
-
-    calculateCpuCycles(&cpuCycleBusy_2, &cpuCycleTotal_2);
-    updatePidArray(&pidInfoList_2, &pidAmount);
-    calculateEnergy(&cpuEnergy_2);
-
-    float total = ((float) cpuCycleTotal_2 - (float) cpuCycleTotal_1);
-
-    float cpuUtil = total != 0 ? (float) cpuCycleBusy_2 - (float) cpuCycleBusy_1 / total : 0;
-    long cpuPower = cpuEnergy_2 - cpuEnergy_1;
-
-    for (int i = 0; i < pidAmount; ++i) {
-        long timed = pidInfoList_2[i].total - pidInfoList_1[i].total;
-        float cpuPidUtil = total != 0 ? (float) timed / total : 0;
-        float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
-        printf("%f\n", cpuPidPower);
-    }
-
-    printf("%d", cpuPower);
-
-
-    free(pidInfoList_1);
-//    free(pidInfoList_2);
-    return 0;
 }
 
-void setPidArray(struct PidInfo *list1[], struct PidInfo *list2[], int *pidAmount) {
+void setPidArray(struct PidInfo *list[], int *pidAmount) {
     FILE *fp;
     int i, count = 0;
     fp = popen(command, "r"); //MAC
-    char buffer[255];
-    char *s = fgets(buffer, 255, fp);
+    char buffer[10000];
+    char *s = fgets(buffer, 10000, fp);
     fclose(fp);
     for (i = 0; s[i] != '\0'; i++) {
         if (s[i] == ' ' && s[i + 1] != ' ')
@@ -112,15 +120,13 @@ void setPidArray(struct PidInfo *list1[], struct PidInfo *list2[], int *pidAmoun
 
     *pidAmount = count;
 
-    *list1 = malloc((count) * sizeof(struct PidInfo));
-    *list2 = malloc((count) * sizeof(struct PidInfo));
+    *list = malloc((count) * sizeof(struct PidInfo));
 
     int j = 0;
     char *token = strtok(s, " ");
     while (token != NULL) {
-        strncpy((*list1)[j].pid, token, 10);
-        strncpy((*list2)[j].pid, token, 10);
-        (*list1)[j].total = calculateCpuCyclesPid(token);
+        strncpy((*list)[j].pid, token, 10);
+        (*list)[j].total_1 = calculateCpuCyclesPid(token);
         token = strtok(NULL, " ");
         j++;
     }
@@ -129,9 +135,8 @@ void setPidArray(struct PidInfo *list1[], struct PidInfo *list2[], int *pidAmoun
 
 void updatePidArray(struct PidInfo *list[], int *pidAmount) {
     for (int k = 0; k < *pidAmount; ++k) {
-        (*list)[k].total = calculateCpuCyclesPid((*list)[k].pid);
+        (*list)[k].total_2 = calculateCpuCyclesPid((*list)[k].pid);
     }
-
 }
 
 
@@ -147,7 +152,7 @@ void calculateCpuCycles(long *busy, long *total) {
     fclose(fp);
 }
 
-void calculateEnergy(long *cpuEnergy) {
+void calculateEnergy(float *cpuEnergy) {
     FILE *fp;
     long microjoules;
     if (psysSupported) {
@@ -167,7 +172,7 @@ void calculateEnergy(long *cpuEnergy) {
     } else {
         exit(0);
     }
-    long j = (microjoules / 1000000);
+    float j = (microjoules / 1000000.0);
     *cpuEnergy = j;
 }
 
