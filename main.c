@@ -3,6 +3,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+
+volatile sig_atomic_t flag = 0;
+
+void handle_int(int sig) {
+    flag = 1;
+}
 
 struct PidInfo {
     char pid[10];
@@ -28,7 +35,9 @@ void setPidArray(struct PidInfo *list1[], int *pidAmount);
 void updatePidArray(struct PidInfo *list[], int *pidAmount);
 
 void calculateEnergy(float *cpuEnergy);
+
 char *strtokm(char *str, const char *delim);
+
 //const char pkgDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/";
 const char pkgDir[] = "/sys/class/powercap/intel-rapl/intel-rapl:0/";
 //const char dramDir[] = "/Users/sdenboer/code/scriptie/rapl/intel-rapl:0/intel-rapl:0:2/";
@@ -49,68 +58,79 @@ bool psysSupported;
 
 
 int main() {
-//    FILE *csvFpt;
 
-//    csvFpt = fopen("MyFile.csv", "w+");
-//    fprintf(csvFpt,"PID, Name, Email, Phone Number\n");
-    long cpuCycleBusy_1;
-    long cpuCycleTotal_1;
-    float cpuEnergy_1;
+    signal(SIGINT, handle_int);
 
-    struct PidInfo *pidInfoList;
+    while (!flag) {
+        long cpuCycleBusy_1;
+        long cpuCycleTotal_1;
+        float cpuEnergy_1;
 
-    int pidAmount;
+        struct PidInfo *pidInfoList;
 
-    long cpuCycleBusy_2;
-    long cpuCycleTotal_2;
-    float cpuEnergy_2;
-    pkgSupported = checkRAPLSupport(pkgDir, "package-0");
-    dramSupported = checkRAPLSupport(dramDir, "package-0");
-    psysSupported = checkRAPLSupport(psysDir, "psys");
+        int pidAmount;
 
-    if (!pkgSupported && !dramSupported && !psysSupported) {
-        printf("Custom energy model not supported yet\n");
-        exit(1);
-    }
-    while (1) {
+        long cpuCycleBusy_2;
+        long cpuCycleTotal_2;
+        float cpuEnergy_2;
+        pkgSupported = checkRAPLSupport(pkgDir, "package-0");
+        dramSupported = checkRAPLSupport(dramDir, "package-0");
+        psysSupported = checkRAPLSupport(psysDir, "psys");
 
-
-        calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
-
-        setPidArray(&pidInfoList, &pidAmount);
-
-        calculateEnergy(&cpuEnergy_1);
-
-        sleep(1);
-
-        calculateCpuCycles(&cpuCycleBusy_2, &cpuCycleTotal_2);
-        updatePidArray(&pidInfoList, &pidAmount);
-
-
-        calculateEnergy(&cpuEnergy_2);
-
-        float total = (float) cpuCycleTotal_2 - (float) cpuCycleTotal_1;
-        float busy = (float) cpuCycleBusy_2 - (float) cpuCycleBusy_1;
-        float cpuUtil = total != 0 ? busy / total : 0;
-        float cpuPower = cpuEnergy_2 - cpuEnergy_1;
-
-        for (int i = 0; i < pidAmount; ++i) {
-            char *pid = (char *) &pidInfoList[i].pid;
-            long *tot_2 = &pidInfoList[i].total_2;
-            long *tot_1 = &pidInfoList[i].total_1;
-            char *command = &pidInfoList[i].command;
-            long timed = (*tot_2 - *tot_1);
-            float cpuPidUtil = total != 0 ? (float) timed / total : 0;
-            float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
-            if (cpuPidPower != 0.f) {
-                printf("%.2f Watt voor PID %s met command %s\n", cpuPidPower, pid, command);
-            }
+        if (!pkgSupported && !dramSupported && !psysSupported) {
+            printf("Custom energy model not supported yet\n");
+            exit(1);
         }
-        printf("%.2f Watt voor CPU\n", cpuPower);
-        fflush(stdout);
+        FILE *fpt;
+
+        fpt = fopen("MyFile.csv", "w+");
+        fprintf(fpt, "PID, Joules, Command\n");
+
+        while (1) {
+
+            calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
+
+            setPidArray(&pidInfoList, &pidAmount);
+
+            calculateEnergy(&cpuEnergy_1);
+
+            sleep(1);
+
+            calculateCpuCycles(&cpuCycleBusy_2, &cpuCycleTotal_2);
+            updatePidArray(&pidInfoList, &pidAmount);
 
 
+            calculateEnergy(&cpuEnergy_2);
+
+            float total = (float) cpuCycleTotal_2 - (float) cpuCycleTotal_1;
+            float busy = (float) cpuCycleBusy_2 - (float) cpuCycleBusy_1;
+            float cpuUtil = total != 0 ? busy / total : 0;
+            float cpuPower = cpuEnergy_2 - cpuEnergy_1;
+
+            for (int i = 0; i < pidAmount; ++i) {
+                char *pid = (char *) &pidInfoList[i].pid;
+                long *tot_2 = &pidInfoList[i].total_2;
+                long *tot_1 = &pidInfoList[i].total_1;
+                char *command = &pidInfoList[i].command;
+                long timed = (*tot_2 - *tot_1);
+                float cpuPidUtil = total != 0 ? (float) timed / total : 0;
+                float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
+                if (cpuPidPower > 0) {
+                    printf("%.2f Watt voor PID %s met command %s\n", cpuPidPower, pid, command);
+                    fprintf(fpt, "%s, %.5f, \"%s\"\n", pid, cpuPidPower, command);
+                }
+
+            }
+            printf("%.2f Watt voor CPU\n", cpuPower);
+            fprintf(fpt, "%s, %.5f, %s\n", "CPU", cpuPower, "CPU");
+
+            fflush(stdout);
+
+        }
+        fclose(fpt);
+        return 0;
     }
+
 
 }
 
@@ -128,41 +148,24 @@ void setPidArray(struct PidInfo *list[], int *pidAmount) {
         bool pidToken = true;
         while (token != NULL) {
             if (pidToken) {
-                strncpy((*list)[count -1].pid, token, 10);
-                (*list)[count -1].total_1 = calculateCpuCyclesPid(token);
+                strncpy((*list)[count - 1].pid, token, 10);
+                (*list)[count - 1].total_1 = calculateCpuCyclesPid(token);
                 pidToken = false;
             } else {
-                strncpy((*list)[count -1].command, str_replace(token, "\n", ""), 10000);
+                strncpy((*list)[count - 1].command, str_replace(token, "\n", ""), 10000);
             }
             token = strtokm(NULL, "|ENERGY_METER_DELIMITER|");
         }
         j++;
-
     }
-//    char *s = fgets(buffer, 10000, fp);
-    fclose(fp);
-//    for (i = 0; s[i] != '\0'; i++) {
-//        if (s[i] == '\n' && s[i + 1] != '\n')
-//            count++;
-//    }
-
     *pidAmount = count;
 
-//    *list = malloc((count) * sizeof(struct PidInfo));
-//
-//    int j = 0;
-//    char *token = strtok(s, " ");
-//    while (token != NULL) {
-//        strncpy((*list)[j].pid, token, 10);
-//        (*list)[j].total_1 = calculateCpuCyclesPid(token);
-//        token = strtok(NULL, " ");
-//        j++;
-//    }
+    fclose(fp);
+
 
 }
 
-char *strtokm(char *str, const char *delim)
-{
+char *strtokm(char *str, const char *delim) {
     static char *tok;
     static char *next;
     char *m;
@@ -242,7 +245,6 @@ long calculateCpuCyclesPid(char *pid) {
     return (user + system);
 }
 
-
 bool checkRAPLSupport(const char *directory, const char *fileName) {
     char *file = concat(directory, "name");
     char *line = readFile(file);
@@ -260,7 +262,6 @@ bool checkRAPLSupport(const char *directory, const char *fileName) {
 char *readFile(const char *file) {
     const int bufferLength = 300;
     char *line = malloc(bufferLength * sizeof(char));
-//    char line[bufferLength];
     FILE *filePointer;
 
     filePointer = fopen(file, "r");
@@ -280,25 +281,24 @@ char *concat(const char *s1, const char *s2) {
 }
 
 char *str_replace(const char *orig, char *rep, char *with) {
-    char *result; // the return string
-    char *ins;    // the next insert point
-    char *tmp;    // varies
-    int len_rep;  // length of rep (the string to remove)
-    int len_with; // length of with (the string to replace rep with)
-    int len_front; // distance between rep and end of last rep
-    int count;    // number of replacements
+    char *result;
+    char *ins;
+    char *tmp;
+    int len_rep;
+    int len_with;
+    int len_front;
+    int count;
 
-    // sanity checks and initialization
     if (!orig || !rep)
         return NULL;
     len_rep = strlen(rep);
     if (len_rep == 0)
-        return NULL; // empty rep causes infinite loop during count
+        return NULL;
     if (!with)
         with = "";
     len_with = strlen(with);
 
-    // count the number of replacements needed
+
     ins = orig;
     for (count = 0; tmp = strstr(ins, rep); ++count) {
         ins = tmp + len_rep;
@@ -309,17 +309,12 @@ char *str_replace(const char *orig, char *rep, char *with) {
     if (!result)
         return NULL;
 
-    // first time through the loop, all the variable are set correctly
-    // from here on,
-    //    tmp points to the end of the result string
-    //    ins points to the next occurrence of rep in orig
-    //    orig points to the remainder of orig after "end of rep"
     while (count--) {
         ins = strstr(orig, rep);
         len_front = ins - orig;
         tmp = strncpy(tmp, orig, len_front) + len_front;
         tmp = strcpy(tmp, with) + len_with;
-        orig += len_front + len_rep; // move to next "end of rep"
+        orig += len_front + len_rep;
     }
     strcpy(tmp, orig);
     return result;
