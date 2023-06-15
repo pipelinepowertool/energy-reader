@@ -1,0 +1,44 @@
+@startuml
+!ccy = "Calculate CPU Cyles\nfrom ///proc/stat//\nas **CC#n**"
+!ccypid = "Calculate PID CPU cycles \nfrom ///proc/[pid]/stat//\nas **CC_PID#n**"
+!raplpkg = "Calculate joules \nfrom (PKG) ///sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj//\nas **J#n**"
+!rapldram = "Calculate joules \nfrom (DRAM) ///sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:2/energy_uj// + **J#n**\nas **J#n**"
+!raplpsys = "Calculate joules \nfrom (PSYS) ///sys/class/powercap/intel-rapl/intel-rapl:1/energy_uj//\nas **J#n**"
+!cpuutil = "Calculate CPU utilization\nfrom (**CC#2.busy** - **CC#1.busy**) ÷ (**CC#2.total** - **CC#1.total**)\nas **CPU_UTIL**"
+!cpupwr = "Calculate CPU power\nfrom **J#2** - **J#1**\nas **CPU_PWR**"
+!cpupidutil = "Calculate CPU PID utilization\nfrom (**CC_PID#2.total** - **CC_PID#1.total**) ÷ (**CC#2.total** - **CC#1.total**)\nas **CPU_PID_UTIL**"
+!cpupidpwr = "Calculate CPU PID power\nfrom (**CPU_PID_UTIL** * **CPU_PWR**) ÷ **CPU_UTIL** as **CPU_PID_PWR**"
+!store = "store in file"
+!append = "append to previous calculations"
+start
+
+while (agent running?) is (yes)
+repeat
+:ccy;
+:ccypid;
+
+if (psys supported?) then (yes)
+  :raplpsys;
+else (no)
+  :raplpkg;
+  if (dram supported?) then (yes)
+     :rapldram;
+  else (no)
+  endif
+endif
+
+backward:Delay 1 second;
+repeat while (snapshot **#n**) is (~#1) not (~#2)
+
+:cpuutil;
+:cpupwr;
+:cpupidutil;
+:cpupidpwr;
+:append;
+:store;
+endwhile(no)
+
+
+stop
+
+@enduml
