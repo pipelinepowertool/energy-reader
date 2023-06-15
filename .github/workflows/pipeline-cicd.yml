@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-        - run: ls /sys/class/powercap/
+        - run: ls /
         - run: cat /sys/class/powercap/intel-rapl/intel-rapl:1/energy_uj
 #       - uses: actions/checkout@v3
 #       - name: make
