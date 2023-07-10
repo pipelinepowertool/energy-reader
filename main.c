@@ -50,7 +50,8 @@ const char cpuCyclesFile[] = "/proc/stat";
 const char cpuCyclesPidFile[] = "/proc/[pid]/stat";
 //const char command[] = "ps -o pid= | xargs | tr -d '\n'";
 //const char command[] = "ps -efho pid -t '?' | xargs | tr -d '\n'";
-const char command[] = "ps -efh -o \"%p|ENERGY_METER_DELIMITER|\" -o command -t '?' | more | awk '{$1=$1;print}'";
+//const char command[] = "ps -efh -o \"%p|ENERGY_METER_DELIMITER|\" -o command -t '?' | more | awk '{$1=$1;print}'";
+const char command[] = "ps -o pid -o args | tail -n +2 | awk '{$1=$1;print}' | sed -r 's/\\s+/|ENERGY_METER_DELIMITER|/'";
 
 bool pkgSupported;
 bool dramSupported;
