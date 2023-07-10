@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-volatile sig_atomic_t flag = 0;
+volatile sig_atomic_t stop = 0;
 
 void handle_int(int sig) {
-    flag = 1;
+    stop = 1;
 }
 
 struct PidInfo {
@@ -57,11 +57,13 @@ bool dramSupported;
 bool psysSupported;
 
 
-int main() {
+int main(int argc, char **argv) {
 
     signal(SIGINT, handle_int);
+    signal(SIGTERM, handle_int);
 
-    while (!flag) {
+    while (!stop) {
+        printf("Starting Energy Meter\n");
         long cpuCycleBusy_1;
         long cpuCycleTotal_1;
         float cpuEnergy_1;
@@ -83,10 +85,10 @@ int main() {
         }
         FILE *fpt;
 
-        fpt = fopen("MyFile.csv", "w+");
-        fprintf(fpt, "PID, Joules, Command\n");
+        fpt = fopen("EnergyReadings.csv", "w+");
+        fprintf(fpt, "PID, Joules, Utilization\n");
 
-        while (1) {
+        while (!stop) {
 
             calculateCpuCycles(&cpuCycleBusy_1, &cpuCycleTotal_1);
 
@@ -116,21 +118,21 @@ int main() {
                 float cpuPidUtil = total != 0 ? (float) timed / total : 0;
                 float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
                 if (cpuPidPower > 0) {
-                    printf("%.2f Watt voor PID %s met command %s\n", cpuPidPower, pid, command);
-                    fprintf(fpt, "%s, %.5f, \"%s\"\n", pid, cpuPidPower, command);
+//                    printf("%.2f Watt voor PID %s\n", cpuPidPower, pid);
+                    fprintf(fpt, "%s, %.5f, %.5f\n", pid, cpuPidPower, cpuPidUtil);
                 }
 
             }
-            printf("%.2f Watt voor CPU\n", cpuPower);
-            fprintf(fpt, "%s, %.5f, %s\n", "CPU", cpuPower, "CPU");
+//            printf("%.2f Watt voor CPU\n", cpuPower);
+            fprintf(fpt, "%s, %.5f, %.5f\n", "CPU", cpuPower, cpuUtil);
 
             fflush(stdout);
 
         }
         fclose(fpt);
-        return 0;
     }
-
+    printf("Exiting Energy Meter");
+    return 0;
 
 }
 
