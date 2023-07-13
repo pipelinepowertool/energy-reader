@@ -22,7 +22,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-jenkins-alpine
     steps:
       - uses: actions/download-artifact@v3
         with:
