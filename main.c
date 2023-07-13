@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
                 float cpuPidUtil = total != 0 ? (float) timed / total : 0;
                 float cpuPidPower = cpuUtil != 0 ? ((cpuPidUtil * cpuPower) / cpuUtil) : 0;
                 if (cpuPidPower > 0) {
-//                    printf("%.2f Watt voor PID %s\n", cpuPidPower, pid);
+                    printf("%.2f Watt voor PID %s\n", cpuPidPower, pid);
                     fprintf(fpt, "%s, %.5f, %.5f\n", pid, cpuPidPower, cpuPidUtil);
                 }
 
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
 //            printf("%.2f Watt voor CPU\n", cpuPower);
 //            fprintf(fpt, "%s, %.5f, %.5f\n", "CPU", cpuPower, cpuUtil);
 
-//            fflush(stdout);
+            fflush(stdout);
 
         }
         fclose(fpt);
