@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Install GCC
         run: apk add build-base
+      - name: Check GCC
+        run: gcc --version
       - uses: actions/checkout@v3
       - name: make
         run: make
