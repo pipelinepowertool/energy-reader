@@ -16,7 +16,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: energy_reader-default
-          path: build/energy_reader-default
+          path: build
 
   build-jenkins-alpine:
     runs-on: ubuntu-20.04
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: energy_reader-jenkins-alpine
-          path: build/energy_reader-jenkins-alpine
+          path: build
 
   deploy:
     runs-on: ubuntu-latest
