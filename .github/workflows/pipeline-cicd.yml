@@ -11,7 +11,7 @@ jobs:
       image: jenkins/ssh-agent:alpine
     steps:
       - name: Install GCC
-        run: apk add build-base -y
+        run: apk add build-base
       - uses: actions/checkout@v3
       - name: make
         run: make
