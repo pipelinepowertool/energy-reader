@@ -29,7 +29,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: energy_reader-jenkins-alpine
-      - uses: jakejarvis/s3-sync-action@master
+          path: artifacts
+      - uses: jakejarvis/s3-sync-action@masters
         with:
           args: --acl public-read --follow-symlinks --delete
         env:
@@ -37,3 +38,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'eu-north-1'
+          SOURCE_DIR: "artifacts"
