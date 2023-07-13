@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
 
             }
 //            printf("%.2f Watt voor CPU\n", cpuPower);
-            fprintf(fpt, "%s, %.5f, %.5f\n", "CPU", cpuPower, cpuUtil);
+//            fprintf(fpt, "%s, %.5f, %.5f\n", "CPU", cpuPower, cpuUtil);
 
-            fflush(stdout);
+//            fflush(stdout);
 
         }
         fclose(fpt);
