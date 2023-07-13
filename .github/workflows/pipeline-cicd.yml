@@ -30,7 +30,7 @@ jobs:
         with:
           name: energy_reader-jenkins-alpine
           path: artifacts
-      - uses: jakejarvis/s3-sync-action@masters
+      - uses: jakejarvis/s3-sync-action@master
         with:
           args: --acl public-read --follow-symlinks --delete
         env:
