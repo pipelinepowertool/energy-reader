@@ -12,10 +12,11 @@ jobs:
       - name: make
         run: make
       - name: rename file
-        run: mv build/energy_reader energy_reader-default
+        run: mv build/energy_reader build/energy_reader-default
       - uses: actions/upload-artifact@v3
         with:
           name: energy_reader-default
+          path: build/energy_reader-default
 
   build-jenkins-alpine:
     runs-on: ubuntu-20.04
@@ -30,10 +31,11 @@ jobs:
       - name: make
         run: make
       - name: rename file
-        run: build/energy_reader energy_reader-jenkins-alpine
+        run: mv build/energy_reader build/energy_reader-jenkins-alpine
       - uses: actions/upload-artifact@v3
         with:
           name: energy_reader-jenkins-alpine
+          path: build/energy_reader-jenkins-alpine
 
   deploy:
     runs-on: ubuntu-latest
