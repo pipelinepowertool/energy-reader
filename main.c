@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
 
         fpt = fopen("EnergyReadings.csv", "w+");
         fprintf(fpt, "PID, Joules, Utilization\n");
+        fflush(fpt);
 
         while (!stop) {
 
@@ -121,6 +122,7 @@ int main(int argc, char **argv) {
                 if (cpuPidPower > 0) {
                     printf("%.2f Watt voor PID %s\n", cpuPidPower, pid);
                     fprintf(fpt, "%s, %.5f, %.5f\n", pid, cpuPidPower, cpuPidUtil);
+                    fflush(fpt);
                 }
 
             }
