@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'gcc:latest'
+      image 'gcc:9-bullseye'
     }
   }
   stages {
