@@ -10,7 +10,7 @@ pipeline {
         sh 'gcc main.c -o energy_reader-standard'
         withAWS(region:'eu-north-1',credentials:'jenkins-s3') {
           sh 'echo "Uploading content with AWS creds"'
-          s3Upload(file:'./build/energy_reader-standard', bucket:'energy-reader', acl: 'PublicRead')
+          s3Upload(file:'./energy_reader-standard', bucket:'energy-reader', acl: 'PublicRead')
         }
       }
     }
