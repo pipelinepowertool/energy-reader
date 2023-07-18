@@ -3,7 +3,10 @@ pipeline {
      stages {
          stage('Build against Ubuntu') {
             agent {
-                docker { image 'ubuntu:latest' }
+                docker {
+                    image 'ubuntu:latest'
+                    args '-u root:root'
+                }
             }
             steps {
                 sh 'apt-get install make -y'
