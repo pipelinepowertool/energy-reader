@@ -1,13 +1,12 @@
 pipeline {
   agent {
     docker {
-      image 'sdenboer/ubuntu-make:latest'
+      image 'sdenboer/pipelinepowertool-ssh_agent-default-make'
     }
   }
   stages {
     stage('Build against Ubuntu') {
       steps {
-        pipelinePowerToolInitiator()
         sh 'make'
         sh 'mv build/energy_reader build/energy_reader-default'
         withAWS(region:'eu-north-1',credentials:'jenkins-s3') {
@@ -15,11 +14,6 @@ pipeline {
           s3Upload(file:'./build/energy_reader-default', bucket:'energy-reader', acl: 'PublicRead')
         }
       }
-    }
-  }
-  post {
-    always {
-      pipelinePowerToolElasticPublisher(userName: "elastic", password: "WYVI+2L0ZjI3n11PjTNP", hostName: "192.168.1.163", port: 9200)
     }
   }
 }
