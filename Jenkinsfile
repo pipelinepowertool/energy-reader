@@ -9,6 +9,7 @@ pipeline {
                 }
             }
             steps {
+                sh 'apt-get update'
                 sh 'apt-get install make -y'
                 sh 'make -version'
             }
