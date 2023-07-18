@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'sdenboer/pipelinepowertool-ssh_agent-alpine-make'
-      args '-u root:root'
+      args '-u root:root -it --entrypoint=/bin/bash'
     }
   }
   stages {

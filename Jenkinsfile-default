@@ -2,6 +2,7 @@ pipeline {
   agent {
     docker {
       image 'sdenboer/pipelinepowertool-ssh_agent-default-make'
+      args '-it --entrypoint=/bin/bash'
     }
   }
   stages {
