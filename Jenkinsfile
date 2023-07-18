@@ -6,6 +6,7 @@ pipeline {
                 docker { image 'ubuntu:latest' }
             }
             steps {
+                sh 'apt-get install make -y'
                 sh 'make -version'
             }
          }
