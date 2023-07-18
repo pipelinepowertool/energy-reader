@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'pipelinepowertool-ssh_agent-alpine-make'
+      image 'sdenboer/pipelinepowertool-ssh_agent-alpine-make'
       args '-u root:root'
     }
   }
