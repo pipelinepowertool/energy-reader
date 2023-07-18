@@ -16,6 +16,7 @@ pipeline {
             agent {
                 docker {
                     image 'sdenboer/jenkins-alpine-make:latest'
+                    args '-u root:root'
                 }
             }
             steps {
