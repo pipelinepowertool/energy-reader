@@ -1,26 +1,18 @@
 pipeline {
   agent {
     docker {
-      image 'sdenboer/pipelinepowertool-ssh_agent-alpine-make'
-      args '-u root:root -it --entrypoint=/bin/bash'
+      image 'frolvlad/alpine-gcc:latest'
     }
   }
   stages {
-    stage('Build against Alpine Jenkins SSH Agent') {
+    stage('Build against Alpine') {
       steps {
-        pipelinePowerToolInitiator()
-        sh 'make'
-        sh 'mv build/energy_reader build/energy_reader-jenkins-alpine'
+        sh 'gcc main.c -o energy_reader-alpine'
         withAWS(region:'eu-north-1',credentials:'jenkins-s3') {
           sh 'echo "Uploading content with AWS creds"'
-          s3Upload(file:'./build/energy_reader-jenkins-alpine', bucket:'energy-reader', acl: 'PublicRead')
+          s3Upload(file:'./energy_reader-alpine', bucket:'energy-reader', acl: 'PublicRead')
         }
       }
-    }
-  }
-  post {
-    always {
-      pipelinePowerToolElasticPublisher(userName: "elastic", password: "WYVI+2L0ZjI3n11PjTNP", hostName: "192.168.1.163", port: 9200)
     }
   }
 }

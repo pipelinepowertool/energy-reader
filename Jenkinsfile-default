@@ -1,18 +1,16 @@
 pipeline {
   agent {
     docker {
-      image 'sdenboer/pipelinepowertool-ssh_agent-default-make'
-      args '-it --entrypoint=/bin/bash'
+      image 'gcc:latest'
     }
   }
   stages {
-    stage('Build against Ubuntu') {
+    stage('Build against standard GCC') {
       steps {
-        sh 'make'
-        sh 'mv build/energy_reader build/energy_reader-default'
+        sh 'gcc main.c -o energy_reader-standard'
         withAWS(region:'eu-north-1',credentials:'jenkins-s3') {
           sh 'echo "Uploading content with AWS creds"'
-          s3Upload(file:'./build/energy_reader-default', bucket:'energy-reader', acl: 'PublicRead')
+          s3Upload(file:'./build/energy_reader-standard', bucket:'energy-reader', acl: 'PublicRead')
         }
       }
     }
