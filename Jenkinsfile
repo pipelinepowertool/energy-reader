@@ -10,6 +10,7 @@ pipeline {
             steps {
                 sh 'make -version'
                 sh 'ls'
+                sh 'make'
             }
          }
          stage('Build against Alpine Jenkins SSH Agent') {
