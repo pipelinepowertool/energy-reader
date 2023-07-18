@@ -16,7 +16,10 @@ pipeline {
          }
          stage('Build against Alpine Jenkins SSH Agent') {
             agent {
-                docker { image 'jenkins/ssh-agent:alpine' }
+                docker {
+                    image 'jenkins/ssh-agent:alpine'
+                    args '-u root:root'
+                }
             }
             steps {
                 sh 'make -version'
