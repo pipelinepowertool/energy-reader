@@ -4,13 +4,10 @@ pipeline {
          stage('Build against Ubuntu') {
             agent {
                 docker {
-                    image 'ubuntu:latest'
-                    args '-u root:root'
+                    image 'sdenboer/ubuntu-make:latest'
                 }
             }
             steps {
-                sh 'apt-get update'
-                sh 'apt-get install make -y'
                 sh 'make -version'
                 sh 'ls'
             }
@@ -18,13 +15,10 @@ pipeline {
          stage('Build against Alpine Jenkins SSH Agent') {
             agent {
                 docker {
-                    image 'jenkins/ssh-agent:alpine'
-                    args '-u root:root'
+                    image 'sdenboer/jenkins-alpine-make:latest'
                 }
             }
             steps {
-                sh 'apt-get update'
-                sh 'apt-get install make -y'
                 sh 'make -version'
                 sh 'ls'
             }
