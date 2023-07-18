@@ -12,6 +12,7 @@ pipeline {
                 sh 'apt-get update'
                 sh 'apt-get install make -y'
                 sh 'make -version'
+                sh 'ls'
             }
          }
          stage('Build against Alpine Jenkins SSH Agent') {
@@ -22,7 +23,10 @@ pipeline {
                 }
             }
             steps {
+                sh 'apt-get update'
+                sh 'apt-get install make -y'
                 sh 'make -version'
+                sh 'ls'
             }
          }
 //          stage('Upload to AWS') {
